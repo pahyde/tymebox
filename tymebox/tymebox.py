@@ -11,6 +11,9 @@ group hierarchy
   coures -> physics
   coding-warmup
 
+  query 
+    - group: get progress by day, week, month, total
+
 
 
 

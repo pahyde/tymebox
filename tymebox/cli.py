@@ -87,7 +87,6 @@ def today():
 
 @cli.command()
 @click.option('--week',  'scale', flag_value='week')
-@click.option('--month', 'scale', flag_value='month')
 @click.option('--total', 'scale', flag_value='total')
 def progress(scale):
     '''View in depth progress on all task groups or any one in particular.'''

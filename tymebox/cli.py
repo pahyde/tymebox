@@ -9,21 +9,31 @@ def cli(ctx):
     daily tasks while tracking long-term accomplishment
     '''
 
-
+#allocate and deallocate time requirements
 @cli.command()
-def allocate():
+@click.argument('group', nargs=1)
+@click.argument('duration', nargs=1)
+@click.argument('days',nargs=-1)
+def allocate(group, duration, days):
     '''Allocate time for new task group'''
+    click.echo('group: {}\nduration: {}\ndays: {}'.format(group, duration, days))
 
 @cli.command()
+@click.argument('group', nargs=1)
 def remove(group):
     '''Remove a task group'''
 
-@cli.command()
-@click.argument('group', required=False)
-def start(group):
-    '''Start a new task!'''
-    click.echo(group)
 
+#start a task
+@cli.command()
+@click.argument('group', nargs=-1)
+@click.argument('task', nargs=1)
+@click.argument('duration',nargs=1)
+def start(group, task, duration):
+    '''Start a new task!'''
+    click.echo('group: {}\ntask: {}\nduration: {}'.format(group, task, duration))
+
+#observe and managage running task
 @cli.command()
 def pause():
     '''pause a running task'''
@@ -40,6 +50,7 @@ def status():
 def close():
     '''Terminate real-time status update process'''
 
+#update state of running task [duration, tags] (tags: complete, incomplete, in-progress)
 @cli.command()
 def complete():
     '''
@@ -60,6 +71,12 @@ def defer():
     tags running or previously ended task incomplete.
     if task was running, only the elapsed time is saved to records.
     '''
+
+
+#long-term stats
+@cli.command()
+def incomplete():
+    '''dispays list of incomplete tasks'''
 
 @cli.command()
 def today():

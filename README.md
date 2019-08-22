@@ -1,12 +1,12 @@
 # TymeBox
-lightweight CLI application to manage and plan daily tasks while tracking long-term accomplishment
+Opinionated CLI application to manage and plan daily tasks while tracking long-term accomplishment
 
 
 # user commands 
 
 ## allocate and re-allocate 
 tymebox allocate data-science 3:00 daily   
-tymebox allocate diffeq 1:25 m,w,s,u    
+tymebox allocate diffeq 1:25 m-w r s u    
 
 ## remove 
 tymebox remove data-science    

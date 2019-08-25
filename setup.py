@@ -3,7 +3,7 @@ from setuptools import setup
 with open("README.md", "r") as readme_file:
     readme = readme_file.read()
 
-requirements = ['Click']
+requirements = ['Click', 'colorama']
 setup(
     name="tymebox",
     version="0.0.1",

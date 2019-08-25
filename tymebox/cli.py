@@ -1,5 +1,9 @@
-from .tymebox import Tymebox
+from time import sleep
 import click
+
+from .tymebox import Tymebox
+from .utils import progress_bar
+from .utils import red, green, yellow, blue, magenta, cyan
 
 
 @click.group()
@@ -20,7 +24,10 @@ def cli(ctx):
 def allocate(tymebox, group, duration, days):
     '''Allocate time for new task group'''
     tymebox.allocate(group, duration, days)
-    click.echo('allocated group: {}'.format(group))
+    hr_time = human_readable_time(duration)
+    hr_days = human_readable_days(days)
+    message = '\n\nAllocated {} for task group {} on {}\n\n'
+    click.echo(message.format(hr_time, blue(group), magenta(hr_days)))
     tymebox.save()
 
 @cli.command()
@@ -37,9 +44,11 @@ def remove(group):
 @click.argument('task', nargs=1)
 @click.argument('duration',nargs=1)
 @click.pass_obj
-def start(group, task, duration):
+def start(tymebox, group, task, duration):
     '''Start a new task!'''
+    tymebox.sync()
     tymebox.start(group, task, duration)
+    tymebox.save()
     click.echo('group: {}\ntask: {}\nduration: {}'.format(group, task, duration))
 
 #observe and managage running task
@@ -99,3 +108,22 @@ def today():
 @click.option('--total', 'scale', flag_value='total')
 def progress(scale):
     '''View in depth progress on all task groups or any one in particular.'''
+
+
+def human_readable_time(time):
+    hours, minutes = map(int,('0'+time).split(':'))
+    return cyan('{} hour(s)'.format(hours)) + ' and ' + cyan('{} minute(s)'.format(minutes))
+
+def human_readable_days(days):
+    expand = {
+        'm': 'Monday',
+        't': 'Tuesday',
+        'w': 'Wednesday',
+        'r': 'Thursday',
+        'f': 'Friday',
+        's': 'Saturday',
+        'u': 'Sunday',
+        '-': ' - ',
+    }
+    days = [''.join(expand[c] for c in day) for day in days]
+    return ', '.join(days[:-1]) + ' and ' + days[-1] if len(days) > 1 else days[0]

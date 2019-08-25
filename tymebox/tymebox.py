@@ -1,10 +1,11 @@
-from .utils import read_json
+from time import time, sleep
 import click
 import os
 
+from .utils import read_json
+
 
 '''
-
 Data Structure
 
 group hierarchy
@@ -52,14 +53,17 @@ group hierarchy
    {
      group_A: {
        allocated: time,
+       day: {tasks: int, completed: int, extended: int, elapsed: time},
        week: {tasks: int, completed: int, extended: int, elapsed: time},
        total: {tasks: int, completed: int, extended: int, elapsed: time},
        subgroups: {
          sgroup_AA: {
+           day: {tasks: int, completed: int, extended: int, elapsed: time},
            week: {tasks: int, completed: int, extended: int, elapsed: time},
            total: {tasks: int, completed: int, extended: int, elapsed: time}
          },
          sgroup_AB: {
+           day: {tasks: int, completed: int, extended: int, elapsed: time},
            week: {tasks: int, completed: int, extended: int, elapsed: time},
            total: {tasks: int, completed: int, extended: int, elapsed: time}
          }
@@ -67,6 +71,7 @@ group hierarchy
      },
     group_B: {
       alloacted: time
+      day: {tasks: int, completed: int, extended: int, elapsed: time},
       week: {tasks: int, completed: int, extended: int, elapsed: time},
       total: {tasks: int, completed: int, extended: int, elapsed: time}
     }
@@ -74,10 +79,6 @@ group hierarchy
   
 
 current task - started, ends, elapsed (updated by pause, resume, extend, defer, complete)
-
-
-
-
 '''
 
 class Tymebox(object):
@@ -90,19 +91,17 @@ class Tymebox(object):
     self.groups = read_json(self.groups_path, type=dict)
     self.tasks  = read_json(self.tasks_path, type=dict)
 
-  def test(self): 
-    return str(self.dir)
-
   def new_task_group(self):
     return {
       'allocated': None,
+      'day':   {'tasks': 0, 'completed': 0, 'extended': 0, 'elapsed': 0},
       'week':  {'tasks': 0, 'completed': 0, 'extended': 0, 'elapsed': 0},
       'total': {'tasks': 0, 'completed': 0, 'extended': 0, 'elapsed': 0},
       'subgroups': None
     }
-  
+
   def parse_days(self,scheduled_days):
-    days = 'mtwrfs'
+    days = 'mtwrfsu'
     res = []
     for chunk in scheduled_days:
       start, end = days.index(chunk[0]), days.index(chunk[-1])
@@ -119,10 +118,45 @@ class Tymebox(object):
     scheduled = {day: minutes for day in self.parse_days(days)}
     self.groups[group] = self.groups.get(group, self.new_task_group())
     self.groups[group]['allocated'] = scheduled
-    print(self.groups)
 
   def remove(self, group):
     pass
 
+  def sync(self):
+    pass
+
+  def update_group_data(self):
+    task  = self.tasks['task']
+    group = task['group']
+    for interval in ['day', 'week', 'total']:
+      group[interval]['tasks'] += 1
+      group[interval]['complete'] += 1 if task['complete'] else 0
+      group[interval]['extended'] += 1 if task['extended'] else 0
+    
+  def start(self, group, task, duration):
+    if 'task' in self.tasks:
+      self.update_group_data()
+    
+    dur_sec = self.parse_minutes(duration) * 60
+    self.tasks['task'] = {
+      'complete': False, 
+      'extended': False, 
+      'paused': False, 
+      'group': group[0], 
+      'allocated_time': dur_sec, 
+      'end_tstamp': time() + dur_sec, 
+      'paused_tstamp': None
+    }
+    print(self.groups)
+    print(self.tasks)
+
+
   def save(self):
     pass
+
+
+
+
+
+
+

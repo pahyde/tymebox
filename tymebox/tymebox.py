@@ -1,4 +1,6 @@
+from .utils import read_json
 import click
+import os
 
 
 '''
@@ -33,11 +35,43 @@ group hierarchy
         arg - row [group (secondary), progress bar, # comp (relative to max item)]
           - proportion (%) tasks completed on time, extended complete, extended incomplete and deferred/incomplete (group)
       prev 4 week graph [allocated, complete, task completion rate]
-      
 
+   task {
+     complete: boolean, 
+     extended: boolean, 
+     paused: boolean, 
+     group: string, 
+     allocated_time: float, 
+     end_tstamp: float, 
+     paused_tstamp: float
+   }
 
+   task -> Groups 
 
-
+   Groups (JSON)
+   {
+     group_A: {
+       allocated: time,
+       week: {tasks: int, completed: int, extended: int, elapsed: time},
+       total: {tasks: int, completed: int, extended: int, elapsed: time},
+       subgroups: {
+         sgroup_AA: {
+           week: {tasks: int, completed: int, extended: int, elapsed: time},
+           total: {tasks: int, completed: int, extended: int, elapsed: time}
+         },
+         sgroup_AB: {
+           week: {tasks: int, completed: int, extended: int, elapsed: time},
+           total: {tasks: int, completed: int, extended: int, elapsed: time}
+         }
+       },
+     },
+    group_B: {
+      alloacted: time
+      week: {tasks: int, completed: int, extended: int, elapsed: time},
+      total: {tasks: int, completed: int, extended: int, elapsed: time}
+    }
+   }
+  
 
 current task - started, ends, elapsed (updated by pause, resume, extend, defer, complete)
 
@@ -45,3 +79,50 @@ current task - started, ends, elapsed (updated by pause, resume, extend, defer, 
 
 
 '''
+
+class Tymebox(object):
+
+  def __init__(self):
+    self.dir         = click.get_app_dir('tymebox')
+    self.groups_path = os.path.join(self.dir, 'groups')
+    self.tasks_path  = os.path.join(self.dir, 'tasks')
+    
+    self.groups = read_json(self.groups_path, type=dict)
+    self.tasks  = read_json(self.tasks_path, type=dict)
+
+  def test(self): 
+    return str(self.dir)
+
+  def new_task_group(self):
+    return {
+      'allocated': None,
+      'week':  {'tasks': 0, 'completed': 0, 'extended': 0, 'elapsed': 0},
+      'total': {'tasks': 0, 'completed': 0, 'extended': 0, 'elapsed': 0},
+      'subgroups': None
+    }
+  
+  def parse_days(self,scheduled_days):
+    days = 'mtwrfs'
+    res = []
+    for chunk in scheduled_days:
+      start, end = days.index(chunk[0]), days.index(chunk[-1])
+      for day in days[start:end + 1]:
+        res.append(day)
+    return res
+  
+  def parse_minutes(self,duration):
+    hours, minutes = map(int,('0' + duration).split(':'))
+    return hours * 60 + minutes
+
+  def allocate(self, group, duration, days):
+    minutes = self.parse_minutes(duration)
+    scheduled = {day: minutes for day in self.parse_days(days)}
+    self.groups[group] = self.groups.get(group, self.new_task_group())
+    self.groups[group]['allocated'] = scheduled
+    print(self.groups)
+
+  def remove(self, group):
+    pass
+
+  def save(self):
+    pass

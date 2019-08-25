@@ -1,3 +1,4 @@
+from .tymebox import Tymebox
 import click
 
 
@@ -8,20 +9,26 @@ def cli(ctx):
     A lightweight CLI application to plan and manage
     daily tasks while tracking long-term accomplishment
     '''
+    ctx.obj = Tymebox()
 
 #allocate and deallocate time requirements
 @cli.command()
 @click.argument('group', nargs=1)
 @click.argument('duration', nargs=1)
 @click.argument('days',nargs=-1)
-def allocate(group, duration, days):
+@click.pass_obj
+def allocate(tymebox, group, duration, days):
     '''Allocate time for new task group'''
-    click.echo('group: {}\nduration: {}\ndays: {}'.format(group, duration, days))
+    tymebox.allocate(group, duration, days)
+    click.echo('allocated group: {}'.format(group))
+    tymebox.save()
 
 @cli.command()
 @click.argument('group', nargs=1)
+@click.pass_obj
 def remove(group):
     '''Remove a task group'''
+    tymebox.remove()
 
 
 #start a task
@@ -29,8 +36,10 @@ def remove(group):
 @click.argument('group', nargs=-1)
 @click.argument('task', nargs=1)
 @click.argument('duration',nargs=1)
+@click.pass_obj
 def start(group, task, duration):
     '''Start a new task!'''
+    tymebox.start(group, task, duration)
     click.echo('group: {}\ntask: {}\nduration: {}'.format(group, task, duration))
 
 #observe and managage running task

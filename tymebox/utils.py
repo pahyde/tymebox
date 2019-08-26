@@ -1,13 +1,30 @@
+import click
 import os
+import json
 from colorama import init
 
 
 #OS
 
-def read_json(path, type):
-    return {}
+def read_json(file_path, type=dict):
+    try:
+        curr = os.getcwd()
+        os.chdir(file_path)
+        with open('groups.json', 'r') as fp:
+            return json.load(fp)
+        os.chdir(curr)
+    except IOError:
+        return type()
 
 
+def write_json(data, dir, file_path):
+    if not os.path.exists(file_path):
+        os.makedirs(file_path, exist_ok=True)
+    curr = os.getcwd()
+    os.chdir(file_path)
+    with open('groups.json', 'w') as fp:
+        json.dump(data,fp)
+    os.chdir(curr)
 
 
 

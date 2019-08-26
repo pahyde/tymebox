@@ -2,7 +2,7 @@ from time import time, sleep
 import click
 import os
 
-from .utils import read_json
+from .utils import read_json, write_json
 
 
 '''
@@ -85,11 +85,11 @@ class Tymebox(object):
 
   def __init__(self):
     self.dir         = click.get_app_dir('tymebox')
-    self.groups_path = os.path.join(self.dir, 'groups')
-    self.tasks_path  = os.path.join(self.dir, 'tasks')
+    self.groups_path = os.path.join(self.dir, 'groups.json')
+    self.tasks_path  = os.path.join(self.dir, 'tasks.json')
     
-    self.groups = read_json(self.groups_path, type=dict)
-    self.tasks  = read_json(self.tasks_path, type=dict)
+    self.groups = read_json(self.groups_path)
+    self.tasks  = read_json(self.tasks_path)
 
   def new_task_group(self):
     return {
@@ -147,12 +147,10 @@ class Tymebox(object):
       'end_tstamp': time() + dur_sec, 
       'paused_tstamp': None
     }
-    print(self.groups)
-    print(self.tasks)
 
 
   def save(self):
-    pass
+    write_json(self.groups, self.dir, self.groups_path)
 
 
 

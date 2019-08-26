@@ -48,7 +48,6 @@ def start(tymebox, group, task, duration):
     '''Start a new task!'''
     tymebox.sync()
     tymebox.start(group, task, duration)
-    tymebox.save()
     click.echo('group: {}\ntask: {}\nduration: {}'.format(group, task, duration))
 
 #observe and managage running task

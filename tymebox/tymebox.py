@@ -88,8 +88,8 @@ class Tymebox(object):
     self.groups_path = os.path.join(self.dir, 'groups.json')
     self.tasks_path  = os.path.join(self.dir, 'tasks.json')
     
-    self.groups = read_json(self.groups_path)
-    self.tasks  = read_json(self.tasks_path)
+    self.groups = read_json(self.groups_path, 'groups.json')
+    self.tasks  = read_json(self.tasks_path, 'tasks.json')
 
   def new_task_group(self):
     return {
@@ -129,9 +129,10 @@ class Tymebox(object):
     task  = self.tasks['task']
     group = task['group']
     for interval in ['day', 'week', 'total']:
-      group[interval]['tasks'] += 1
-      group[interval]['complete'] += 1 if task['complete'] else 0
-      group[interval]['extended'] += 1 if task['extended'] else 0
+      self.groups[group][interval]['tasks'] += 1
+      self.groups[group][interval]['completed'] += 1 if task['complete'] else 0
+      self.groups[group][interval]['extended'] += 1 if task['extended'] else 0
+    self
     
   def start(self, group, task, duration):
     if 'task' in self.tasks:
@@ -148,9 +149,11 @@ class Tymebox(object):
       'paused_tstamp': None
     }
 
+  def save_group_data(self):
+    write_json(self.groups, self.groups_path, 'groups.json')
 
-  def save(self):
-    write_json(self.groups, self.dir, self.groups_path)
+  def save_task_data(self):
+    write_json(self.tasks, self.tasks_path, 'tasks.json')
 
 
 

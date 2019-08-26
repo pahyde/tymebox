@@ -28,7 +28,7 @@ def allocate(tymebox, group, duration, days):
     hr_days = human_readable_days(days)
     message = '\n\nAllocated {} for task group {} on {}\n\n'
     click.echo(message.format(hr_time, blue(group), magenta(hr_days)))
-    tymebox.save()
+    tymebox.save_group_data()
 
 @cli.command()
 @click.argument('group', nargs=1)
@@ -48,6 +48,8 @@ def start(tymebox, group, task, duration):
     '''Start a new task!'''
     tymebox.sync()
     tymebox.start(group, task, duration)
+    tymebox.save_task_data()
+    tymebox.save_group_data()
     click.echo('group: {}\ntask: {}\nduration: {}'.format(group, task, duration))
 
 #observe and managage running task

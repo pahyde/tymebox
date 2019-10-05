@@ -1,4 +1,4 @@
-from time import sleep
+from time import time, sleep
 import click
 
 from .tymebox import Tymebox
@@ -46,11 +46,24 @@ def remove(group):
 @click.pass_obj
 def start(tymebox, group, task, duration):
     '''Start a new task!'''
-    tymebox.sync()
+
+    if tymebox.has_running_task():
+
+        status = tymebox.current_task_status()
+        message = '\n{} remaining for unresolved task "{}" - {}\n'
+        click.echo(message.format(human_readable_time(status['time_remaining']), status['task'], status['group']))
+        click.echo('input "c" to mark ' + cyan('complete') + ', "d" to mark ' + blue('deferred') + ', or "q" to exit')
+        
+        userin = input()
+
+        if   userin == 'c': complete()
+        elif userin == 'd': defer()
+        else              : return
+        
     tymebox.start(group, task, duration)
-    tymebox.save_task_data()
-    tymebox.save_group_data()
-    click.echo('group: {}\ntask: {}\nduration: {}'.format(group, task, duration))
+    tymebox.save()
+    click.echo('Started {} task {} at {}'.format(group, task, duration, time()))
+
 
 #observe and managage running task
 @cli.command()
@@ -60,6 +73,7 @@ def pause():
 @cli.command()
 def resume():
     '''resume a paused task'''
+
 
 @cli.command()
 def status():
@@ -71,11 +85,29 @@ def close():
 
 #update state of running task [duration, tags] (tags: complete, incomplete, in-progress)
 @cli.command()
-def complete():
+@click.pass_obj
+def complete(tymebox):
     '''
     manually tags running or previous task complete. if running, task is ended.
     tasks which run out their allotted time are tagged complete by default.
     '''
+    status = tymebox.current_task_status()
+    if status['time_remaining'] != 0:
+        time_remaining = red(parse_hms(int(status['time_remaining'])))
+        task = magenta(status['task'])
+        group = cyan(status['group'])
+        click.echo('\n{} remaining for task {} - {}\n'.format(time_remaining, task, group))
+        click.echo('mark task complete? (y/n):')
+        if input().lower() != 'y': return 
+    tymebox.complete()
+    tymebox.save()
+    click.echo('\n{} - {} complete!\n'.format(status['task'],status['group']))
+
+def parse_hms(s):
+    zero_fill = lambda t: str(t) if t > 9 else '0{}'.format(t)
+
+    hours, minutes, seconds = s // 3600, (s % 3600) // 60, s % 60
+    return '{}:{}:{}'.format(*(zero_fill(t) for t in [hours, minutes, seconds]))
 
 @cli.command()
 def extend():
@@ -84,12 +116,17 @@ def extend():
     or previously ended task.
     '''
 
+
 @cli.command()
 def defer():
     '''
     tags running or previously ended task incomplete.
     if task was running, only the elapsed time is saved to records.
     '''
+    tymebox.defer()
+    tymebox.save()
+    click.echo('{} - {} defered'.format(status['task'],status['group']))
+
 
 
 #long-term stats

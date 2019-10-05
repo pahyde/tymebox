@@ -21,6 +21,7 @@ group hierarchy
       two tables  
       1) allocated - per row display [group (top-level), progress bar, # comp / alloc] 
       2) unallocated - per row display [group (top-level), progress bar, # comp (relative to max item)]
+      3) in-progress [time left: (hh:mm)]
     
     progress --week (arg = top-level group):
       one table
@@ -55,7 +56,7 @@ group hierarchy
        allocated: time,
        day: {tasks: int, completed: int, extended: int, elapsed: time},
        week: {tasks: int, completed: int, extended: int, elapsed: time},
-       total: {tasks: int, completed: int, extended: int, elapsed: time},
+   
        subgroups: {
          sgroup_AA: {
            day: {tasks: int, completed: int, extended: int, elapsed: time},
@@ -113,6 +114,7 @@ class Tymebox(object):
     hours, minutes = map(int,('0' + duration).split(':'))
     return hours * 60 + minutes
 
+  #allocate / remove
   def allocate(self, group, duration, days):
     minutes = self.parse_minutes(duration)
     scheduled = {day: minutes for day in self.parse_days(days)}
@@ -123,23 +125,22 @@ class Tymebox(object):
     pass
 
   def sync(self):
-    pass
-
-  def update_group_data(self):
+      pass
+  
+  def finalize_task(self):
     task  = self.tasks['task']
     group = task['group']
     for interval in ['day', 'week', 'total']:
       self.groups[group][interval]['tasks'] += 1
       self.groups[group][interval]['completed'] += 1 if task['complete'] else 0
       self.groups[group][interval]['extended'] += 1 if task['extended'] else 0
-    self
+    self.tasks['task'] = None
     
+  #start
   def start(self, group, task, duration):
-    if 'task' in self.tasks:
-      self.update_group_data()
-    
     dur_sec = self.parse_minutes(duration) * 60
     self.tasks['task'] = {
+      'name': task,
       'complete': False, 
       'extended': False, 
       'paused': False, 
@@ -149,15 +150,44 @@ class Tymebox(object):
       'paused_tstamp': None
     }
 
+
+  def has_running_task(self):
+      return self.tasks['task'] != None
+  
+
+  def current_task_status(self):
+      return {
+        'task': self.tasks['task']['name'],
+        'group': self.tasks['task']['group'],
+        'time_remaining': max(self.tasks['task']['end_tstamp'] - time(), 0)
+      }
+
+  #update task completion state
+  def complete(self):
+      self.tasks['task']['complete'] = True
+      self.tasks['previous_task'] = self.tasks['task']
+      self.finalize_task()
+
+  def extend(self):
+      self.tasks['task']['complete'] = True
+      self.tasks['task']['extended'] = True
+      self.tasks['previous_task'] = self.tasks['task']
+      self.finalize_task()
+
+  def defer(self):
+      self.tasks['task']['complete'] = False
+      self.tasks['previous_task'] = self.tasks['task']
+      self.finalize_task()
+
+  def save(self):
+      self.save_group_data()
+      self.save_task_data()
+
   def save_group_data(self):
-    write_json(self.groups, self.groups_path, 'groups.json')
+      write_json(self.groups, self.groups_path, 'groups.json')
 
   def save_task_data(self):
-    write_json(self.tasks, self.tasks_path, 'tasks.json')
-
-
-
-
+      write_json(self.tasks, self.tasks_path, 'tasks.json')
 
 
 

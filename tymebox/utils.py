@@ -1,7 +1,7 @@
 import click
 import os
 import json
-from colorama import init
+#from colorama import init
 
 
 #OS

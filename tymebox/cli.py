@@ -44,20 +44,21 @@ def remove(group):
 @click.argument('task', nargs=1)
 @click.argument('duration',nargs=1)
 @click.pass_obj
-def start(tymebox, group, task, duration):
+@click.pass_context
+def start(ctx, tymebox, group, task, duration):
     '''Start a new task!'''
 
     if tymebox.has_running_task():
 
         status = tymebox.current_task_status()
         message = '\n{} remaining for unresolved task "{}" - {}\n'
-        click.echo(message.format(human_readable_time(status['time_remaining']), status['task'], status['group']))
+        click.echo(message.format(parse_hms(int(status['time_remaining'])), status['task'], status['group']))
         click.echo('input "c" to mark ' + cyan('complete') + ', "d" to mark ' + blue('deferred') + ', or "q" to exit')
         
         userin = input()
 
-        if   userin == 'c': complete()
-        elif userin == 'd': defer()
+        if   userin == 'c': ctx.invoke(complete, tymebox)
+        elif userin == 'd': ctx.invoke(defer, tymebox)
         else              : return
         
     tymebox.start(group, task, duration)
@@ -91,7 +92,12 @@ def complete(tymebox):
     manually tags running or previous task complete. if running, task is ended.
     tasks which run out their allotted time are tagged complete by default.
     '''
+    if not tymebox.has_running_task():
+        click.echo(red("\nNo task started.\n") + "\nStart a task with" + cyan(" tymebox start [group] [duration]\n"))
+        return
+
     status = tymebox.current_task_status()
+
     if status['time_remaining'] != 0:
         time_remaining = red(parse_hms(int(status['time_remaining'])))
         task = magenta(status['task'])
@@ -99,9 +105,11 @@ def complete(tymebox):
         click.echo('\n{} remaining for task {} - {}\n'.format(time_remaining, task, group))
         click.echo('mark task complete? (y/n):')
         if input().lower() != 'y': return 
+
     tymebox.complete()
     tymebox.save()
     click.echo('\n{} - {} complete!\n'.format(status['task'],status['group']))
+
 
 def parse_hms(s):
     zero_fill = lambda t: str(t) if t > 9 else '0{}'.format(t)
@@ -109,12 +117,32 @@ def parse_hms(s):
     hours, minutes, seconds = s // 3600, (s % 3600) // 60, s % 60
     return '{}:{}:{}'.format(*(zero_fill(t) for t in [hours, minutes, seconds]))
 
+
+
 @cli.command()
-def extend():
+@click.pass_obj
+@click.argument('extension', nargs=1)
+def extend(tymebox, extension):
     '''
     extends allotted time by given amount for running
     or previously ended task.
     '''
+    if not tymebox.has_running_task():
+        click.echo("\nNo task available to extend. \nStart a task with tymebox start [group] [duration]\n")
+        return
+    
+    tymebox.extend(extension)
+    tymebox.save()
+    
+    status = tymebox.current_task_status()
+
+    time_remaining = parse_hms(int(status['time_remaining']))
+    task           = magenta(status['task'])
+    group          = blue(status['group'])
+
+    message = '\nExtended task by {}. {} remaing for task {} - {}\n'
+    click.echo(message.format(human_readable_time(extension),time_remaining, task, group))
+     
 
 
 @cli.command()

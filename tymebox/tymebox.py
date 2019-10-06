@@ -134,6 +134,7 @@ class Tymebox(object):
       self.groups[group][interval]['tasks'] += 1
       self.groups[group][interval]['completed'] += 1 if task['complete'] else 0
       self.groups[group][interval]['extended'] += 1 if task['extended'] else 0
+      self.groups[group][interval]['elapsed'] += task['allocated_time'] - max(task['end_tstamp'] - time(), 0)
     self.tasks['task'] = None
     
   #start
@@ -168,20 +169,27 @@ class Tymebox(object):
       self.tasks['previous_task'] = self.tasks['task']
       self.finalize_task()
 
-  def extend(self):
+  def extend(self, duration):
+      dur_sec = self.parse_minutes(duration) * 60
+
+      self.tasks['task']['allocated_time'] += dur_sec
+      self.tasks['task']['end_tstamp']     += dur_sec + max(time() - self.tasks['task']['end_tstamp'], 0)
+
       self.tasks['task']['complete'] = True
       self.tasks['task']['extended'] = True
       self.tasks['previous_task'] = self.tasks['task']
-      self.finalize_task()
+
 
   def defer(self):
       self.tasks['task']['complete'] = False
       self.tasks['previous_task'] = self.tasks['task']
       self.finalize_task()
 
+
   def save(self):
       self.save_group_data()
       self.save_task_data()
+
 
   def save_group_data(self):
       write_json(self.groups, self.groups_path, 'groups.json')

@@ -38,5 +38,3 @@ magenta = lambda s: '\033[35m' + s + '\033[39m'
 cyan    = lambda s: '\033[36m' + s + '\033[39m'
 
 
-def progress_bar():
-    pass

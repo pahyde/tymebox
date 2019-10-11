@@ -2,6 +2,7 @@ from time import time, sleep
 import click
 import os
 
+
 from .utils import read_json, write_json
 
 
@@ -147,6 +148,7 @@ class Tymebox(object):
       'paused': False, 
       'group': group[0], 
       'allocated_time': dur_sec, 
+      'start_tstamp': time(),
       'end_tstamp': time() + dur_sec, 
       'paused_tstamp': None
     }
@@ -160,9 +162,24 @@ class Tymebox(object):
       return {
         'task': self.tasks['task']['name'],
         'group': self.tasks['task']['group'],
-        'time_remaining': max(self.tasks['task']['end_tstamp'] - time(), 0)
+        'time_elapsed': min(time() - self.tasks['task']['start_tstamp'], self.tasks['task']['allocated_time']),
+        'time_remaining': max(self.tasks['task']['end_tstamp'] - time(), 0),
+        'paused': self.tasks['task']['paused']
       }
+        
+  #observe and manage running task
+  def pause(self):
+      self.tasks['task']['paused_tstamp'] = time()
+      self.tasks['task']['paused'] = True
 
+
+  def resume(self):
+      paused_tstamp = self.tasks['task']['paused_tstamp']
+      self.tasks['task']['end_tstamp'] += time() - paused_tstamp
+      self.tasks['task']['start_tstamp'] += time() - paused_tstamp
+      self.tasks['task']['paused'] = False
+      self.tasks['task']['paused_tstamp'] = None
+ 
   #update task completion state
   def complete(self):
       self.tasks['task']['complete'] = True

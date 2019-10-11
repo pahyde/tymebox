@@ -2,7 +2,7 @@ from time import time, sleep
 import click
 
 from .tymebox import Tymebox
-from .utils import progress_bar
+from .statistics import progress_bar
 from .utils import red, green, yellow, blue, magenta, cyan
 
 
@@ -52,13 +52,13 @@ def start(ctx, tymebox, group, task, duration):
 
         status = tymebox.current_task_status()
         message = '\n{} remaining for unresolved task "{}" - {}\n'
-        click.echo(message.format(parse_hms(int(status['time_remaining'])), status['task'], status['group']))
+        click.echo(message.format(parse_hms(round(status['time_remaining'])), status['task'], status['group']))
         click.echo('input "c" to mark ' + cyan('complete') + ', "d" to mark ' + blue('deferred') + ', or "q" to exit')
         
         userin = input()
 
-        if   userin == 'c': ctx.invoke(complete, tymebox)
-        elif userin == 'd': ctx.invoke(defer, tymebox)
+        if   userin == 'c': ctx.invoke(complete)
+        elif userin == 'd': ctx.invoke(defer)
         else              : return
         
     tymebox.start(group, task, duration)
@@ -68,17 +68,45 @@ def start(ctx, tymebox, group, task, duration):
 
 #observe and managage running task
 @cli.command()
-def pause():
+@click.pass_obj
+def pause(tymebox):
     '''pause a running task'''
 
+    status = tymebox.current_task_status()
+    
+    if status['paused']:
+        click.echo('task: {} is already paused. Use "tymebox resume" to resume task'.format(status['task']))
+        return
+    tymebox.pause()
+    tymebox.save()
+    task = cyan(status['task'])
+    time_remaining = red(parse_hms(round(status['time_remaining'])))
+    time_elapsed = magenta(parse_hms(round(status['time_elapsed'])))
+    click.echo('\nPaused task: {} at {}. {} remaining\n'.format(task, time_elapsed, time_remaining))
+
+
 @cli.command()
-def resume():
+@click.pass_obj
+def resume(tymebox):
     '''resume a paused task'''
+
+    status = tymebox.current_task_status()
+
+    if not status['paused']:
+        click.echo('\ncurrent task {} - {} is not paused.\n'.format(cyan(status['task']), magenta(status['group'])))
+        return
+
+    tymebox.resume()
+    tymebox.save()
+    status = tymebox.current_task_status()
+    time_remaining = red(parse_hms(round(status['time_remaining'])))
+    click.echo('\nresuming task {}. {} remaining\n'.format(status['task'], time_remaining))
 
 
 @cli.command()
 def status():
     '''View task status and progress in real-time'''
+    click.echo(progress_bar(20, 100))
 
 @cli.command()
 def close():
@@ -99,7 +127,7 @@ def complete(tymebox):
     status = tymebox.current_task_status()
 
     if status['time_remaining'] != 0:
-        time_remaining = red(parse_hms(int(status['time_remaining'])))
+        time_remaining = red(parse_hms(round(status['time_remaining'])))
         task = magenta(status['task'])
         group = cyan(status['group'])
         click.echo('\n{} remaining for task {} - {}\n'.format(time_remaining, task, group))
@@ -136,7 +164,7 @@ def extend(tymebox, extension):
     
     status = tymebox.current_task_status()
 
-    time_remaining = parse_hms(int(status['time_remaining']))
+    time_remaining = parse_hms(round(status['time_remaining']))
     task           = magenta(status['task'])
     group          = blue(status['group'])
 
@@ -146,14 +174,16 @@ def extend(tymebox, extension):
 
 
 @cli.command()
-def defer():
+@click.pass_obj
+def defer(tymebox):
     '''
     tags running or previously ended task incomplete.
     if task was running, only the elapsed time is saved to records.
     '''
+    status = tymebox.current_task_status()
     tymebox.defer()
     tymebox.save()
-    click.echo('{} - {} defered'.format(status['task'],status['group']))
+    click.echo('\n{} - {} defered\n'.format(status['task'],status['group']))
 
 
 

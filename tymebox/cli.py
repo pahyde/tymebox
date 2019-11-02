@@ -1,4 +1,5 @@
 from time import time, sleep
+from datetime import datetime
 import click
 
 from .tymebox import Tymebox
@@ -63,7 +64,10 @@ def start(ctx, tymebox, group, task, duration):
         
     tymebox.start(group, task, duration)
     tymebox.save()
-    click.echo('Started {} task {} at {}'.format(group, task, duration, time()))
+    status = tymebox.current_task_status()
+    message = '\nstarted task {} - {} at {}. {} remaining\n'
+    date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    click.echo(message.format(cyan(task), magenta(status['group']), date, red(duration)))
 
 
 #observe and managage running task
@@ -104,9 +108,11 @@ def resume(tymebox):
 
 
 @cli.command()
-def status():
+@click.pass_obj
+def status(tymebox):
     '''View task status and progress in real-time'''
-    click.echo(progress_bar(20, 100))
+    status = tymebox.current_task_status()
+    click.echo(progress_bar(status['time_elapsed'], status['duration']))
 
 @cli.command()
 def close():
@@ -193,11 +199,27 @@ def incomplete():
     '''dispays list of incomplete tasks'''
 
 @cli.command()
-def today():
+@click.pass_obj
+def today(tymebox):
     '''
     View current progress on allocated tasks for the day.
     Progress also displayed for unallocated tasks started during the day.
     '''
+    allocated_groups = [(k,v) for k,v in tymebox.groups.items() if today in v['allocated']]
+    rows = sorted([ (group, data['day']['elapsed'], data['allocated'][today]) 
+                    for group, data in allocated_groups], key = lambda x: x[0])
+
+    if tymebox.has_running_task():
+        status = tymebox.current_task_status()
+        group = status['group']
+        time_remaining = status['time_remaining']
+        for row in rows:
+            if row[0] == running_task_group:
+                row[1] += time_remaining
+
+        click.echo(tabulate_days_progress(rows))
+
+
 
 @cli.command()
 @click.option('--week',  'scale', flag_value='week')

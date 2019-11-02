@@ -162,6 +162,7 @@ class Tymebox(object):
       return {
         'task': self.tasks['task']['name'],
         'group': self.tasks['task']['group'],
+        'duration': self.tasks['task']['allocated_time'],
         'time_elapsed': min(time() - self.tasks['task']['start_tstamp'], self.tasks['task']['allocated_time']),
         'time_remaining': max(self.tasks['task']['end_tstamp'] - time(), 0),
         'paused': self.tasks['task']['paused']

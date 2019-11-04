@@ -92,9 +92,11 @@ class Tymebox(object):
     
     self.groups = read_json(self.groups_path, 'groups.json')
     self.tasks  = read_json(self.tasks_path, 'tasks.json')
+    self.save()
 
   def new_task_group(self):
     return {
+      'last_sync': None,
       'allocated': None,
       'day':   {'tasks': 0, 'completed': 0, 'extended': 0, 'elapsed': 0},
       'week':  {'tasks': 0, 'completed': 0, 'extended': 0, 'elapsed': 0},
@@ -155,7 +157,7 @@ class Tymebox(object):
 
 
   def has_running_task(self):
-      return self.tasks['task'] != None
+      return 'task' in self.tasks and self.tasks['task'] != None
   
 
   def current_task_status(self):

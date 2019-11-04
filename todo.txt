@@ -1,0 +1,7 @@
+CLI features:
+
+- today
+- incomplete
+- progress
+- realtime status option
+

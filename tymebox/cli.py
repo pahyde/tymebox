@@ -3,7 +3,7 @@ from datetime import datetime
 import click
 
 from .tymebox import Tymebox
-from .statistics import progress_bar
+from .statistics import progress_bar, tabulated_days_progress
 from .utils import red, green, yellow, blue, magenta, cyan
 
 
@@ -37,6 +37,7 @@ def allocate(tymebox, group, duration, days):
 def remove(group):
     '''Remove a task group'''
     tymebox.remove()
+    tymebox.save_group_data()
 
 
 #start a task
@@ -112,7 +113,8 @@ def resume(tymebox):
 def status(tymebox):
     '''View task status and progress in real-time'''
     status = tymebox.current_task_status()
-    click.echo(progress_bar(status['time_elapsed'], status['duration']))
+    click.echo('\n{} - {}'.format(cyan(status['task']), magenta(status['group'])))
+    click.echo('\n' + progress_bar(status['time_elapsed'], status['duration']) + '\n')
 
 @cli.command()
 def close():
@@ -205,20 +207,27 @@ def today(tymebox):
     View current progress on allocated tasks for the day.
     Progress also displayed for unallocated tasks started during the day.
     '''
-    allocated_groups = [(k,v) for k,v in tymebox.groups.items() if today in v['allocated']]
-    rows = sorted([ (group, data['day']['elapsed'], data['allocated'][today]) 
-                    for group, data in allocated_groups], key = lambda x: x[0])
+    day = ['m','t','w','r','f','s','u'][datetime.today().weekday()]
+    allocated_rows = allocated_groups_data(tymebox.groups, day)
+    #todo unallocated_rows
 
     if tymebox.has_running_task():
         status = tymebox.current_task_status()
         group = status['group']
-        time_remaining = status['time_remaining']
-        for row in rows:
-            if row[0] == running_task_group:
-                row[1] += time_remaining
+        time_elapsed = status['time_elapsed']
+        for row in allocated_rows:
+            if row[0] == group:
+                row[1] += time_elapsed
 
-        click.echo(tabulate_days_progress(rows))
+    click.echo(red('\nallocated'))
+    click.echo(tabulated_days_progress(allocated_rows))
 
+
+def allocated_groups_data(groups, day):
+    allocated_groups = [(k,v) for k,v in groups.items() if day in v['allocated']]
+    rows = sorted([ [group, data['day']['elapsed'], data['allocated'][day] * 60] 
+                    for group, data in allocated_groups], key = lambda x: x[0])
+    return rows
 
 
 @cli.command()

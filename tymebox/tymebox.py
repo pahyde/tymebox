@@ -1,4 +1,5 @@
 from time import time, sleep
+from datetime import datetime
 import click
 import os
 
@@ -92,11 +93,19 @@ class Tymebox(object):
     
     self.groups = read_json(self.groups_path, 'groups.json')
     self.tasks  = read_json(self.tasks_path, 'tasks.json')
+
+    if 'pushedup' not in self.groups: 
+        self.groups['pushedup'] = []
+
+    if 'pushedback' not in self.groups: 
+        self.groups['pushedback'] = []
+
+    self.sync()
     self.save()
 
   def new_task_group(self):
+    #note: tasks, completed could be group string array instead of count int
     return {
-      'last_sync': None,
       'allocated': None,
       'day':   {'tasks': 0, 'completed': 0, 'extended': 0, 'elapsed': 0},
       'week':  {'tasks': 0, 'completed': 0, 'extended': 0, 'elapsed': 0},
@@ -121,23 +130,45 @@ class Tymebox(object):
   def allocate(self, group, duration, days):
     minutes = self.parse_minutes(duration)
     scheduled = {day: minutes for day in self.parse_days(days)}
-    self.groups[group] = self.groups.get(group, self.new_task_group())
-    self.groups[group]['allocated'] = scheduled
+    self.groups['allocated_groups'] = self.groups.get('allocated_groups', {})
+    self.groups['allocated_groups'][group] = self.groups['allocated_groups'].get(group, self.new_task_group())
+    self.groups['allocated_groups'][group]['allocated'] = scheduled
 
   def remove(self, group):
     pass
 
+
   def sync(self):
-      pass
+    today = (datetime.today().weekday() + 1) % 7
+    t     = time()
+
+    self.groups['last_sync'] = self.groups.get('last_sync', {'day': today, 'time': t})
+    last_sync_day            = self.groups['last_sync']['day']
+    last_sync_time           = self.groups['last_sync']['time']
+
+    if today < last_sync_day or time() - last_sync_time > 7 * 24 *60 * 60:
+        self.aggregate_stats('week', 'total')
+        self.aggregate_stats('day',  'total')
+    elif today - last_sync_day > 0:
+        self.aggregate_stats('day', 'week')
+    self.groups['last_sync'] = {'day': today, 'time': t}
+
+
+  def aggregate_stats(self, k1, k2):
+      for group in self.groups['allocated_groups']:
+          for tag in ['tasks', 'completed', 'extended', 'elapsed']:
+              self.groups['allocated_groups'][group][k2][tag] += self.groups['allocated_groups'][group][k1][tag]
+              self.groups['allocated_groups'][group][k1][tag] = 0
+
   
   def finalize_task(self):
     task  = self.tasks['task']
     group = task['group']
     for interval in ['day', 'week', 'total']:
-      self.groups[group][interval]['tasks'] += 1
-      self.groups[group][interval]['completed'] += 1 if task['complete'] else 0
-      self.groups[group][interval]['extended'] += 1 if task['extended'] else 0
-      self.groups[group][interval]['elapsed'] += task['allocated_time'] - max(task['end_tstamp'] - time(), 0)
+      self.groups['allocated_groups'][group][interval]['tasks'] += 1
+      self.groups['allocated_groups'][group][interval]['completed'] += 1 if task['complete'] else 0
+      self.groups['allocated_groups'][group][interval]['extended'] += 1 if task['extended'] else 0
+      self.groups['allocated_groups'][group][interval]['elapsed'] += task['allocated_time'] - max(task['end_tstamp'] - time(), 0)
     self.tasks['task'] = None
     
   #start

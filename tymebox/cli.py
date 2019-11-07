@@ -40,6 +40,25 @@ def remove(group):
     tymebox.save_group_data()
 
 
+@cli.command()
+@click.argument('group', nargs=1)
+@click.pass_obj
+def pushup(tymebox, group):
+    pass
+
+
+@cli.command()
+@click.argument('group', nargs=1)
+@click.pass_obj
+def pushback(tymebox, group):
+    pass
+
+@cli.command()
+@click.pass_obj
+def cleanslate(tymebox):
+    pass
+
+
 #start a task
 @cli.command()
 @click.argument('group', nargs=-1)
@@ -224,7 +243,7 @@ def today(tymebox):
 
 
 def allocated_groups_data(groups, day):
-    allocated_groups = [(k,v) for k,v in groups.items() if day in v['allocated']]
+    allocated_groups = [(k,v) for k,v in groups['allocated_groups'].items() if day in v['allocated']]
     rows = sorted([ [group, data['day']['elapsed'], data['allocated'][day] * 60] 
                     for group, data in allocated_groups], key = lambda x: x[0])
     return rows
